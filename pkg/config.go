@@ -1,4 +1,4 @@
-package lib
+package pkg
 
 type Config struct {
 	Server ServerConfig
