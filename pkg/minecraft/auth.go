@@ -491,7 +491,7 @@ func GetMCcredentials(CacheFilename, cid string) (BotAuth, error) {
 	if err != nil {
 		return resauth, err
 	}
-	log.Println("获取了 MC 令牌，不检查你是否拥有游戏，因为这太复杂了，直接去获取 MC 配置文件...")
+	log.Println("获取了 MC 令牌，正在获取 MC 配置文件...，若失败请检查你是否拥有Minecraft")
 
 	resauth, err = GetMCprofile(MCa.Token)
 	if err != nil {
