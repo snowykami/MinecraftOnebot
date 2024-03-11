@@ -5,11 +5,7 @@ import (
 	"github.com/Tnze/go-mc/bot/basic"
 )
 
-var (
-	client *bot.Client
-	player *basic.Player
-)
-
 func JoinServer() {
-	client = bot.NewClient()
+	client := bot.NewClient()
+	client.Auth = basic.Auth("email", "password")
 }

@@ -1,19 +1,41 @@
 package main
 
 import (
-	"MCOnebot/pkg"
-	"MCOnebot/pkg/minecraft"
-	"fmt"
+	libob "MCOnebot/pkg/libonebotv11"
+	"time"
+)
+
+var (
+	ob *libob.OneBot
 )
 
 func main() {
-	err := pkg.Init()
-	if err != nil {
-		return
+	self := &libob.Self{
+		Platform: "minecraft",
+		UserID:   "Steve",
 	}
-	msauth, err := minecraft.GetMCcredentials("data/msauth.json", "88650e7e-efee-4857-b9a9-cf580a00ef43")
-	if err != nil {
-		panic(err)
+	config := &libob.Config{
+		Heartbeat: libob.ConfigHeartbeat{
+			Enabled:  true,
+			Interval: 20000,
+		},
+		Comm: libob.ConfigComm{
+			WSReverse: []libob.ConfigCommWSReverse{
+				{
+					URL:               "ws://127.0.0.1:20216/onebot/v11/ws",
+					ReconnectInterval: 3000,
+				},
+			},
+		},
 	}
-	fmt.Println(msauth.Name)
+
+	ob = libob.NewOneBot("minecraft-onebot", self, config)
+	go ob.Run()
+	time.Sleep(1 * time.Second)
+	msg := libob.Message{
+		libob.TextSegment("Hello, World!"),
+	}
+	groupEvent := libob.MakeGroupMessageEvent(time.Now(), "1", msg, "alt_message", "lys", "Steve")
+	go ob.Push(&groupEvent)
+	time.Sleep(5 * time.Second)
 }

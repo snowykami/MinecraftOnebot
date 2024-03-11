@@ -1,22 +1,27 @@
-Servers:
+servers:
   # 一个服务器是一个群，ServerName对应GroupID
-  - Name: "Server1"
-    Address: "mc.example.top"
-    Online: true  # 正版模式使用交互式登录微软账户
-    ReconnectInterval: 5  # 重连间隔，单位秒，0为不重连
+  - name: "Server1"
+    address: "mc.example.top"
+    online: true  # 正版模式使用交互式登录微软账户
+    reconnect_interval: 5  # 重连间隔，单位秒，0为不重连
 
 
-  - Name: "Server2"
-    Address: "server.top"
-    Online: false
-    ReconnectInterval: 5
-    BotPlayer:
-      Name: "Bot"
-      UUID: # Bot的UUID，留空则随机生成
+  - name: "Server2"
+    address: "server.top"
+    online: false
+    reconnect_interval: 5
+
+bot_player:
+  # 离线模式下的Bot配置
+  Name: "Bot"
+  UUID: "00000000-0000-0000-0000-000000000000"
 
 
-OneBotConnection:
+onebot:
 # 连接 OneBot 的配置
-  - ReverseWS:
-      Address: "ws://127.0.0.1:8080/onebot/v12"
-      ReconnectInterval: 5  # 重连间隔，单位秒，0为不重连
+  - reverse_ws:
+    - address: "ws://127.0.0.1:8080/onebot/v12"
+      reconnect_interval: 5  # 重连间隔，单位秒，0为不重连
+
+    - address: "ws://
+        reconnect_interval: 5
