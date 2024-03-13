@@ -1,7 +1,6 @@
-package config
+package common
 
 import (
-	"MCOnebot/pkg/common"
 	"gopkg.in/yaml.v3"
 	"os"
 )
@@ -21,7 +20,6 @@ type ServerConfig struct {
 type AuthConfig struct {
 	Online     bool   `yaml:"online"`
 	PlayerName string `yaml:"player_name"`
-	UUID       string `yaml:"uuid"`
 }
 
 type OnebotConfig struct {
@@ -76,14 +74,14 @@ func LoadConfig(fileName string) (*Config, error) {
 	config := &Config{}
 	data, err := os.ReadFile(fileName)
 	if err != nil {
-		common.Logger.Error("读取配置文件失败: ", err)
+		Logger.Error("读取配置文件失败: ", err)
 		return nil, err
 	}
 	err = yaml.Unmarshal(data, config)
 	if err != nil {
-		common.Logger.Error("解析配置文件失败: ", err)
+		Logger.Error("解析配置文件失败: ", err)
 		return nil, err
 	}
-	common.Logger.Println("配置文件加载成功")
+	Logger.Println("配置文件加载成功")
 	return config, nil
 }

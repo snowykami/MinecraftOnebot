@@ -3,12 +3,12 @@ package minecraft
 // Go MC 微软认证
 
 import (
+	"MCOnebot/pkg/common"
 	"bytes"
 	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -108,17 +108,17 @@ func AuthMSdevice(cid string) (MSauth, error) {
 	if !ok {
 		return auth, errors.New("在响应中未找到用户代码")
 	}
-	log.Print("用户代码：", UserCode)
+	common.Logger.Print("用户代码：", UserCode)
 	VerificationURI, ok := DeviceRes["verification_uri"].(string)
 	if !ok {
 		return auth, errors.New("在响应中未找到验证 URI")
 	}
-	log.Print("验证 URI：", VerificationURI)
+	common.Logger.Print("验证 URI：", VerificationURI)
 	ExpiresIn, ok := DeviceRes["expires_in"].(float64)
 	if !ok {
 		return auth, errors.New("在响应中未找到 expires_in")
 	}
-	log.Print("过期时间：", ExpiresIn, " 秒")
+	common.Logger.Print("过期时间：", ExpiresIn, " 秒")
 	PoolInterval, ok := DeviceRes["interval"].(float64)
 	if !ok {
 		return auth, errors.New("在响应中未找到轮询间隔")
@@ -127,7 +127,7 @@ func AuthMSdevice(cid string) (MSauth, error) {
 	if !ok {
 		return auth, errors.New("在响应中未找到用户消息")
 	}
-	log.Println(UserMessage)
+	common.Logger.Println(UserMessage)
 	time.Sleep(4 * time.Second)
 
 	for {
@@ -447,7 +447,7 @@ func GetMCcredentials(CacheFilename, cid string) (BotAuth, error) {
 		if err != nil {
 			return resauth, err
 		}
-		log.Println("获取了授权令牌，正在尝试对 XBL 进行身份验证...")
+		common.Logger.Println("获取了授权令牌，正在尝试对 XBL 进行身份验证...")
 	} else {
 		cachecontent, err := os.ReadFile(CacheFilename)
 		if err != nil {
@@ -472,26 +472,26 @@ func GetMCcredentials(CacheFilename, cid string) (BotAuth, error) {
 				return resauth, err
 			}
 		}
-		log.Println("获取了缓存的授权令牌，正在尝试对 XBL 进行身份验证...")
+		common.Logger.Println("获取了缓存的授权令牌，正在尝试对 XBL 进行身份验证...")
 	}
 
 	XBLa, err := AuthXBL(MSa.AccessToken)
 	if err != nil {
 		return resauth, err
 	}
-	log.Println("在 XBL 上获得了授权，正在尝试获取 XSTS 令牌...")
+	common.Logger.Println("在 XBL 上获得了授权，正在尝试获取 XSTS 令牌...")
 
 	XSTSa, err := AuthXSTS(XBLa)
 	if err != nil {
 		return resauth, err
 	}
-	log.Println("获取了 XSTS 令牌，正在尝试获取 MC 令牌...")
+	common.Logger.Println("获取了 XSTS 令牌，正在尝试获取 MC 令牌...")
 
 	MCa, err := AuthMC(XSTSa)
 	if err != nil {
 		return resauth, err
 	}
-	log.Println("获取了 MC 令牌，正在获取 MC 配置文件...，若失败请检查你是否拥有Minecraft")
+	common.Logger.Println("获取了 MC 令牌，正在获取 MC 配置文件...，若失败请检查你是否拥有Minecraft")
 
 	resauth, err = GetMCprofile(MCa.Token)
 	if err != nil {
