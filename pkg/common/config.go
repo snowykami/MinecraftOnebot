@@ -6,9 +6,14 @@ import (
 )
 
 type Config struct {
+	Common  CommonConfig          `yaml:"common"`  // 通用配置
 	Servers []ServerConfig        `yaml:"servers"` // 服务器列表
 	Auth    map[string]AuthConfig `yaml:"auth"`    // 验证信息
 	Onebot  OnebotConfig          `yaml:"onebot"`  // Onebot 配置列表
+}
+
+type CommonConfig struct {
+	JoinInterval int `yaml:"join_interval"` // 加入间隔，单位秒，建议长一点
 }
 
 type ServerConfig struct {
@@ -18,8 +23,9 @@ type ServerConfig struct {
 	Auth              string `yaml:"auth"`               // 验证信息
 }
 type AuthConfig struct {
-	Online bool   `yaml:"online"`
-	Name   string `yaml:"name"`
+	Online       bool   `yaml:"online"`
+	Name         string `yaml:"name"`
+	JoinInterval int    `yaml:"join_interval"` // 加入间隔，单位秒，建议长一点
 }
 
 type OnebotConfig struct {
