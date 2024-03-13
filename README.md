@@ -16,7 +16,8 @@
 # 自行查看`config.example.yaml`文件
 ```
 
-
+### 版本支持
+协议库使用的是`go-mc`，一个构建仅支持一个Minecraft版本，如有其他Minecraft版本需求请修改`go.mod`自行构建
 
 ### 感谢以下项目
 - [go-mc](https://github.com/Tnze/go-mc)
