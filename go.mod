@@ -4,12 +4,14 @@ go 1.22
 
 require (
 	github.com/Tnze/go-mc v1.20.1
+	github.com/botuniverse/go-libonebot v0.7.0
 	github.com/gorilla/websocket v1.5.1
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/tevino/abool/v2 v2.1.0
 	github.com/tidwall/gjson v1.17.1
 	github.com/vmihailenco/msgpack/v5 v5.4.1
+	gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c
 )
 
 require (

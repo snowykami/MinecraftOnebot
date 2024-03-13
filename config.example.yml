@@ -1,27 +1,30 @@
+# 这是一个示例配置文件，你可以根据自己的需求进行修改保存为config.yml
 servers:
-  # 一个服务器是一个群，ServerName对应GroupID
-  - name: "Server1"
-    address: "mc.example.top"
-    online: true  # 正版模式使用交互式登录微软账户
-    reconnect_interval: 5  # 重连间隔，单位秒，0为不重连
-
+  - name: "server1" # 服务器名称，对应GroupID，v11下为数字，v12下为字符串
+    address: "mc.example.top" # 服务器地址
+    reconnect_interval: 5  # 重连间隔，单位秒，0为不重连，建议大一点不然被反作弊封号
+    auth: "auth_example_online"  # 服务器的认证信息
 
   - name: "Server2"
     address: "server.top"
-    online: false
     reconnect_interval: 5
+    auth: "auth_example_offline"
 
-bot_player:
-  # 离线模式下的Bot配置
-  Name: "Bot"
-  UUID: "00000000-0000-0000-0000-000000000000"
-
+auth: # 自定义认证信息
+  auth_example_online: # 服务器的认证信息
+    online: true  # 在线模式下使用交互式登录
+    name:   # 在线模式下不生效
+    uuid:   # 在线模式下不生效
+  auth_example_offline:
+    online: false
+    name: "Bot"
+    uuid: "00000000-0000-0000-0000-000000000000"
 
 onebot:
-# 连接 OneBot 的配置
-  - reverse_ws:
+  reverse_ws:
     - address: "ws://127.0.0.1:8080/onebot/v12"
       reconnect_interval: 5  # 重连间隔，单位秒，0为不重连
 
-    - address: "ws://
-        reconnect_interval: 5
+  bot:
+    self_id: 114514  # 机器人的ID，v11下需使用数字形式，v12下使用字符串形式，要兼容的话请使用字符串数字形式
+    player_id_type: "uuid_int"  # 为兼容onebotv11，用户的ID传输模式，uuid_int为UUID的整数形式(在某些语言下可能无法处理较大的整数，例如Javascript)，primary_key为使用数据库自增主键作为id

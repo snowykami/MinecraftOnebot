@@ -1,6 +1,13 @@
 package event
 
-import "strconv"
+import (
+	"strconv"
+	"sync/atomic"
+)
+
+var (
+	LatestMessageID uint64 = 0
+)
 
 type PrivateMessageEvent struct {
 	BaseEvent
@@ -28,19 +35,34 @@ type GroupMessageEvent struct {
 	Sender      PrivateSender `json:"sender"`       // 发送者信息
 }
 
-func MakeGroupMessageEvent(selfId int64, subType string, groupID string, userID string, anonymous Anonymous, message Message, font int32, sender PrivateSender) GroupMessageEvent {
-	LatestMessageID++
+// MakeGroupMessageEvent 快速构造一个群聊消息事件
+func MakeGroupMessageEvent(message Message, groupID string, userID string) GroupMessageEvent {
 	return GroupMessageEvent{
-		BaseEvent:   MakeEvent(selfId, PostTypeMessage),
+		BaseEvent:   MakeEvent(PostTypeMessage),
 		MessageType: MessageTypeGroup,
 		SubType:     GroupMessageEventSubTypeNormal,
-		MessageID:   strconv.FormatUint(LatestMessageID, 10),
+		MessageID:   strconv.FormatUint(atomic.AddUint64(&LatestMessageID, 1), 10),
 		GroupID:     groupID,
 		UserID:      userID,
-		Anonymous:   anonymous,
+		Anonymous:   Anonymous{},
 		Message:     message,
 		RawMessage:  message.ExtractText(),
-		Font:        font,
-		Sender:      sender,
+		Font:        0,               // 这逼东西我也没用过，懒得实现了，但是
+		Sender:      PrivateSender{}, // 通过UserID获取
+	}
+}
+
+// MakePrivateMessageEvent 快速构造一个私聊消息事件
+func MakePrivateMessageEvent(message Message, userID string) PrivateMessageEvent {
+	return PrivateMessageEvent{
+		BaseEvent:   MakeEvent(PostTypeMessage),
+		MessageType: MessageTypePrivate,
+		SubType:     PrivateMessageEventSubTypeFriend,
+		MessageID:   strconv.FormatUint(atomic.AddUint64(&LatestMessageID, 1), 10),
+		UserID:      userID,
+		Message:     message,
+		RawMessage:  message.ExtractText(),
+		Font:        0,               // 这逼东西我也没用过，懒得实现了，但是
+		Sender:      PrivateSender{}, // 通过UserID获取
 	}
 }

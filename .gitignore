@@ -1,4 +1,5 @@
 msauth.json
 config.yml
 .idea
+data
 pkg/go-cqhttp-master

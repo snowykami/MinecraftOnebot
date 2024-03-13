@@ -38,10 +38,6 @@ const (
 	GroupMessageEventSubTypeNotice    = "notice"    // 群公告
 )
 
-var (
-	LatestMessageID uint64 = 0
-)
-
 type MessageSegment struct {
 }
 
@@ -84,10 +80,10 @@ func (m *Message) ExtractText() string {
 	return ""
 }
 
-func MakeEvent(selfId int64, postType string) BaseEvent {
+func MakeEvent(postType string) BaseEvent {
 	return BaseEvent{
 		Time:     time.Now().Unix(),
-		SelfId:   selfId,
+		SelfId:   0, // Push的时候会自动填充
 		PostType: postType,
 	}
 }
