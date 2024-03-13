@@ -8,7 +8,7 @@ import (
 )
 
 var (
-	config *common.Config
+	config = &common.Config{}
 )
 
 func main() {
@@ -16,7 +16,7 @@ func main() {
 	if err != nil {
 		return
 	}
-	config, err = common.LoadConfig("config.yml")
+	err = common.LoadConfig("config.yml", config)
 	if err != nil {
 		return
 	}

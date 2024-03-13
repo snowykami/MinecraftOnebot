@@ -18,8 +18,8 @@ type ServerConfig struct {
 	Auth              string `yaml:"auth"`               // 验证信息
 }
 type AuthConfig struct {
-	Online     bool   `yaml:"online"`
-	PlayerName string `yaml:"player_name"`
+	Online bool   `yaml:"online"`
+	Name   string `yaml:"name"`
 }
 
 type OnebotConfig struct {
@@ -70,18 +70,17 @@ type HTTPConfig struct {
 }
 
 // LoadConfig 从文件加载配置
-func LoadConfig(fileName string) (*Config, error) {
-	config := &Config{}
+func LoadConfig(fileName string, config *Config) error {
 	data, err := os.ReadFile(fileName)
 	if err != nil {
 		Logger.Error("读取配置文件失败: ", err)
-		return nil, err
+		return err
 	}
 	err = yaml.Unmarshal(data, config)
 	if err != nil {
 		Logger.Error("解析配置文件失败: ", err)
-		return nil, err
+		return err
 	}
 	Logger.Println("配置文件加载成功")
-	return config, nil
+	return nil
 }
