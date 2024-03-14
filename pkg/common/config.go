@@ -5,49 +5,55 @@ import (
 	"os"
 )
 
+// Config 配置
 type Config struct {
-	Common  CommonConfig          `yaml:"common"`  // 通用配置
+	Common  CommConfig            `yaml:"common"`  // 通用配置
 	Servers []ServerConfig        `yaml:"servers"` // 服务器列表
 	Auth    map[string]AuthConfig `yaml:"auth"`    // 验证信息
 	Onebot  OnebotConfig          `yaml:"onebot"`  // Onebot 配置列表
 }
 
-type CommonConfig struct {
+// CommConfig 通用配置
+type CommConfig struct {
 	JoinInterval int `yaml:"join_interval"` // 加入间隔，单位秒，建议长一点
 }
 
+// ServerConfig 服务器配置
 type ServerConfig struct {
-	Name              string `yaml:"name"` // 服务器名称，自定义值，建议为string类型的数字
-	Address           string `yaml:"address"`
-	ReconnectInterval int    `yaml:"reconnect_interval"` // 重连间隔，单位秒，建议长一点
-	Auth              string `yaml:"auth"`               // 验证信息
+	Name                 string `yaml:"name"` // 服务器名称，自定义值，建议为string类型的数字
+	Address              string `yaml:"address"`
+	ReconnectInterval    int    `yaml:"reconnect_interval"`     // 重连间隔，单位秒，建议长一点
+	Auth                 string `yaml:"auth"`                   // 验证信息
+	PlayerMessageHandler string `yaml:"player_message_handler"` // 玩家消息处理器，这是为了兼容bug
 }
+
+// AuthConfig 验证信息
 type AuthConfig struct {
 	Online       bool   `yaml:"online"`
 	Name         string `yaml:"name"`
 	JoinInterval int    `yaml:"join_interval"` // 加入间隔，单位秒，建议长一点
 }
 
+// OnebotConfig Onebot 配置
 type OnebotConfig struct {
-	// 连接列表
-	ReverseWS []ReverseWSConfig `yaml:"reverse_ws"` // 反向 WebSocket 配置
-	ForwardWS []ForwardWSConfig `yaml:"forward_ws"` // 正向 WebSocket 配置
-	HTTPPost  []HTTPPostConfig  `yaml:"http_post"`  // HTTP POST 配置(反向 HTTP 服务)
-	HTTP      []HTTPConfig      `yaml:"http"`       // HTTP 配置(正向 HTTP 服务)`
+	ReverseWS []ReverseWSConfig `yaml:"reverse_ws"` // 反向 WebSocket 配置列表
+	ForwardWS []ForwardWSConfig `yaml:"forward_ws"` // 正向 WebSocket 配置列表
+	HTTPPost  []HTTPPostConfig  `yaml:"http_post"`  // HTTP POST 配置(反向 HTTP)
+	HTTP      []HTTPConfig      `yaml:"http"`       // HTTP 配置(正向 HTTP)
 	Bot       BotConfig         `yaml:"bot"`        // 机器人配置
 }
 
-// BotConfig 机器人配置
+// BotConfig 本地机器人配置
 type BotConfig struct {
 	SelfID            int64  `yaml:"self_id"`            // 机器人 QQ 号
-	HeartbeatInterval int    `yaml:"heartbeat_interval"` // 心跳间隔, 单位为毫秒
+	HeartbeatInterval int    `yaml:"heartbeat_interval"` // 心跳间隔, 单位为秒
 	PlayerIDType      string `yaml:"player_id_type"`     // 玩家号传输类型
 }
 
 // ReverseWSConfig 反向 WebSocket 配置
 type ReverseWSConfig struct {
 	Address           string `yaml:"address"`            // 服务器地址 ws://example.com:8080/onebot/
-	ReconnectInterval int    `yaml:"reconnect_interval"` // 重连间隔, 单位为毫秒
+	ReconnectInterval int    `yaml:"reconnect_interval"` // 重连间隔, 单位为秒
 	AccessToken       string `yaml:"access_token"`       // AccessToken 用于验证连接的令牌
 	ProtocolVersion   int    `yaml:"protocol_version"`   // 协议版本11/12
 }
