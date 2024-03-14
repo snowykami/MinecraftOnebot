@@ -75,7 +75,7 @@ onebot: # OneBot配置
 ### 已知Bug
 - 某些情况下玩家消息会被接收为`system`，所以提供了`player_message_handler`选项来决定是否从系统消息中正则匹配提取玩家消息，
 当然这也会导致某些情况下系统消息被误判为玩家消息，本人能力有限，后续了解MC协议后会尝试修复。与`go-mc`的作者交流后推测应该是Mojang在`1.19.1`加入的聊天消息验证所致，该问题大概率出在非原版服务端上，
-目前测试发现`Paper` `Spigot` `purpur`均有此问题
+目前测试发现`Paper` `Spigot` `purpur`均有此问题，其他服务端未测试，如果你有解决方案欢迎提出
 
 ### 感谢以下项目
 - [go-mc](https://github.com/Tnze/go-mc)
