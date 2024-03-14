@@ -1,6 +1,4 @@
-## MCOnebot
-
-#### 本程序部分代码依靠bug运行，若无法正确运行可能是bug被修了
+## MinecraftOnebot
 ### 这是什么
 - 一个基于OneBot标准的Minecraft服务器聊天机器人实现端，目标是兼容现有OneBot v11/12标准的Bot，使开发者无需改代码即可在MC中使用Bot
 - 还没有Release，快了快了...
@@ -22,6 +20,7 @@ servers: # 服务器列表
     address: "mc.example.top" # 服务器地址
     reconnect_interval: 5  # 重连间隔，单位秒，0为不重连，建议大一点不然被反作弊封号
     auth: "auth_example_online"  # 服务器的认证信息
+    player_message_handler: "system"  # 这个是go-mc的一个bug，某些情况下玩家消息会被接收为system，这里可以设置为system来处理玩家消息
 
   - name: "Server2"
     address: "server.top"
@@ -67,6 +66,16 @@ onebot: # OneBot配置
 ### 版本支持
 协议库使用的是`go-mc`，一个构建仅支持一个Minecraft版本，如有其他Minecraft版本需求请修改`go.mod`自行构建
 如果你是腐竹，可以使用`ViaVersion`插件来支持多个版本
+
+### TODO
+- [ ] 使用地图画插件来支持图片消息(需自备图片外链)
+- [ ] 支持@player
+- [ ] `player_message_handler`自定义聊天样式的支持
+
+### 已知Bug
+- 某些情况下玩家消息会被接收为`system`，所以提供了`player_message_handler`选项来决定是否从系统消息中正则匹配提取玩家消息，
+当然这也会导致某些情况下系统消息被误判为玩家消息，本人能力有限，后续了解MC协议后会尝试修复。与`go-mc`的作者交流后推测应该是Mojang在`1.19.1`加入的聊天消息验证所致，该问题大概率出在非原版服务端上，
+目前测试发现`Paper` `Spigot` `purpur`均有此问题
 
 ### 感谢以下项目
 - [go-mc](https://github.com/Tnze/go-mc)
