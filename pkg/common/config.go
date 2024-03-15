@@ -7,10 +7,10 @@ import (
 
 // Config 配置
 type Config struct {
-	Common  CommConfig            `yaml:"common"`  // 通用配置
-	Servers []ServerConfig        `yaml:"servers"` // 服务器列表
-	Auth    map[string]AuthConfig `yaml:"auth"`    // 验证信息
-	Onebot  OnebotConfig          `yaml:"onebot"`  // Onebot 配置列表
+	Common  CommConfig              `yaml:"common"`  // 通用配置
+	Servers map[string]ServerConfig `yaml:"servers"` // 服务器列表
+	Auth    map[string]AuthConfig   `yaml:"auth"`    // 验证信息
+	Onebot  OnebotConfig            `yaml:"onebot"`  // Onebot 配置列表
 }
 
 // CommConfig 通用配置
@@ -20,7 +20,6 @@ type CommConfig struct {
 
 // ServerConfig 服务器配置
 type ServerConfig struct {
-	Name                 string `yaml:"name"` // 服务器名称，自定义值，建议为string类型的数字
 	Address              string `yaml:"address"`
 	ReconnectInterval    int    `yaml:"reconnect_interval"`     // 重连间隔，单位秒，建议长一点
 	Auth                 string `yaml:"auth"`                   // 验证信息
@@ -36,11 +35,11 @@ type AuthConfig struct {
 
 // OnebotConfig Onebot 配置
 type OnebotConfig struct {
-	ReverseWS []ReverseWSConfig `yaml:"reverse_ws"` // 反向 WebSocket 配置列表
-	ForwardWS []ForwardWSConfig `yaml:"forward_ws"` // 正向 WebSocket 配置列表
-	HTTPPost  []HTTPPostConfig  `yaml:"http_post"`  // HTTP POST 配置(反向 HTTP)
-	HTTP      []HTTPConfig      `yaml:"http"`       // HTTP 配置(正向 HTTP)
-	Bot       BotConfig         `yaml:"bot"`        // 机器人配置
+	ReverseWebSocket []ReverseWebSocketConfig `yaml:"reverse_websocket"` // 反向 WebSocket 配置列表
+	WebSocket        []WebSocketConfig        `yaml:"websocket"`         // 正向 WebSocket 配置列表
+	HTTPWebhook      []HTTPWebhookConfig      `yaml:"http_webhook"`      // HTTP POST 配置(反向 HTTP)
+	HTTP             []HTTPConfig             `yaml:"http"`              // HTTP 配置(正向 HTTP)
+	Bot              BotConfig                `yaml:"bot"`               // 机器人配置
 }
 
 // BotConfig 本地机器人配置
@@ -50,24 +49,24 @@ type BotConfig struct {
 	PlayerIDType      string `yaml:"player_id_type"`     // 玩家号传输类型
 }
 
-// ReverseWSConfig 反向 WebSocket 配置
-type ReverseWSConfig struct {
+// ReverseWebSocketConfig 反向 WebSocket 配置
+type ReverseWebSocketConfig struct {
 	Address           string `yaml:"address"`            // 服务器地址 ws://example.com:8080/onebot/
 	ReconnectInterval int    `yaml:"reconnect_interval"` // 重连间隔, 单位为秒
 	AccessToken       string `yaml:"access_token"`       // AccessToken 用于验证连接的令牌
 	ProtocolVersion   int    `yaml:"protocol_version"`   // 协议版本11/12
 }
 
-// ForwardWSConfig 正向 WebSocket 配置
-type ForwardWSConfig struct {
+// WebSocketConfig 正向 WebSocket 配置
+type WebSocketConfig struct {
 	Host            string `yaml:"host"`             // 监听主机地址
 	Port            int    `yaml:"port"`             // 绑定端口
 	AccessToken     string `yaml:"access_token"`     // AccessToken 用于验证连接的令牌
 	ProtocolVersion int    `yaml:"protocol_version"` // 协议版本11/12
 }
 
-// HTTPPostConfig HTTP POST 配置
-type HTTPPostConfig struct {
+// HTTPWebhookConfig HTTP POST 配置
+type HTTPWebhookConfig struct {
 	Address         string `yaml:"address"`          // 上报地址
 	AccessToken     string `yaml:"access_token"`     // AccessToken 用于验证连接的令牌
 	ProtocolVersion int    `yaml:"protocol_version"` // 协议版本11/12
@@ -83,6 +82,11 @@ type HTTPConfig struct {
 
 // LoadConfig 从文件加载配置
 func LoadConfig(fileName string, config *Config) error {
+	_, err := os.Stat(fileName)
+	if err != nil {
+		Logger.Error("配置文件 config.yml 不存在，请修改 config.example.yml 后自行保存为 config.yml 后重启", err)
+		return err
+	}
 	data, err := os.ReadFile(fileName)
 	if err != nil {
 		Logger.Error("读取配置文件失败: ", err)

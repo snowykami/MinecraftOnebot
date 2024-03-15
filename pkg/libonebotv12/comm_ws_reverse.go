@@ -5,13 +5,12 @@ package libonebot
 
 import (
 	"context"
+	"github.com/gorilla/websocket"
+	"github.com/tevino/abool/v2"
 	"net/http"
 	"net/url"
 	"sync"
 	"time"
-
-	"github.com/gorilla/websocket"
-	"github.com/tevino/abool/v2"
 )
 
 type wsReverseComm struct {

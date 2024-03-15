@@ -108,12 +108,11 @@ func AuthMSdevice(cid string) (MSauth, error) {
 	if !ok {
 		return auth, errors.New("在响应中未找到用户代码")
 	}
-	common.Logger.Print("用户代码：", UserCode)
 	VerificationURI, ok := DeviceRes["verification_uri"].(string)
 	if !ok {
 		return auth, errors.New("在响应中未找到验证 URI")
 	}
-	common.Logger.Print("验证 URI：", VerificationURI)
+	common.Logger.Printf("要登录Microsoft，请在浏览器中打开 %s 并输入 %s 进行验证", VerificationURI, UserCode)
 	ExpiresIn, ok := DeviceRes["expires_in"].(float64)
 	if !ok {
 		return auth, errors.New("在响应中未找到 expires_in")
@@ -123,11 +122,11 @@ func AuthMSdevice(cid string) (MSauth, error) {
 	if !ok {
 		return auth, errors.New("在响应中未找到轮询间隔")
 	}
-	UserMessage, ok := DeviceRes["message"].(string)
+	//UserMessage, ok := DeviceRes["message"].(string)
 	if !ok {
 		return auth, errors.New("在响应中未找到用户消息")
 	}
-	common.Logger.Println(UserMessage)
+	//common.Logger.Println(UserMessage)
 	time.Sleep(4 * time.Second)
 
 	for {
@@ -447,7 +446,7 @@ func GetMCcredentials(CacheFilename, cid string) (BotAuth, error) {
 		if err != nil {
 			return resauth, err
 		}
-		common.Logger.Println("获取了授权令牌，正在尝试对 XBL 进行身份验证...")
+		common.Logger.Println("获取令牌成功，已保存到本地缓存！")
 	} else {
 		cachecontent, err := os.ReadFile(CacheFilename)
 		if err != nil {
@@ -472,29 +471,30 @@ func GetMCcredentials(CacheFilename, cid string) (BotAuth, error) {
 				return resauth, err
 			}
 		}
-		common.Logger.Println("获取了缓存的授权令牌，正在尝试对 XBL 进行身份验证...")
+		common.Logger.Printf("从本地缓存 %s 中获取令牌成功！", CacheFilename)
 	}
 
 	XBLa, err := AuthXBL(MSa.AccessToken)
 	if err != nil {
 		return resauth, err
 	}
-	common.Logger.Println("在 XBL 上获得了授权，正在尝试获取 XSTS 令牌...")
+	//common.Logger.Println("在 XBL 上获得了授权，正在尝试获取 XSTS 令牌...")
 
 	XSTSa, err := AuthXSTS(XBLa)
 	if err != nil {
 		return resauth, err
 	}
-	common.Logger.Println("获取了 XSTS 令牌，正在尝试获取 MC 令牌...")
+	//common.Logger.Println("获取了 XSTS 令牌，正在尝试获取 MC 令牌...")
 
 	MCa, err := AuthMC(XSTSa)
 	if err != nil {
 		return resauth, err
 	}
-	common.Logger.Println("获取了 MC 令牌，正在获取 MC 配置文件...，若失败请检查你是否拥有Minecraft")
+	//common.Logger.Println("获取了 MC 令牌，正在获取 MC 配置文件...，若失败请检查你是否拥有Minecraft")
 
 	resauth, err = GetMCprofile(MCa.Token)
 	if err != nil {
+		common.Logger.Errorf("获取 MC 配置文件失败，请检查你的账户是否拥有Minecraft：%s", err)
 		return resauth, err
 	}
 	resauth.AsTk = MCa.Token

@@ -21,7 +21,7 @@ func main() {
 		return
 	}
 
-	clientManager := mc.NewClientManager(config)
+	clientManager := mc.NewClientManager(*config)
 	go clientManager.Run()
 
 	select {}

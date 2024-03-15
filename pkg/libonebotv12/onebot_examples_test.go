@@ -12,7 +12,7 @@ import (
 func Example_1() {
 	// 示例: 什么都不做的 OneBot 实现
 
-	// 创建空 Config
+	// 创建空 ServerConfig
 	config := &libob.Config{}
 	// 创建机器人自身标识
 	self := &libob.Self{
@@ -34,7 +34,7 @@ func Example_2() {
 }
 
 func Example_3() {
-	// 示例: 扩展 Config 和 OneBot 类型
+	// 示例: 扩展 ServerConfig 和 OneBot 类型
 
 	type MyConfig struct {
 		libob.Config
