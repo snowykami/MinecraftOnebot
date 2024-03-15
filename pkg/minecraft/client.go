@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/Tnze/go-mc/bot"
 	"github.com/Tnze/go-mc/bot/basic"
+	"github.com/Tnze/go-mc/bot/msg"
 	"github.com/Tnze/go-mc/bot/playerlist"
 	"sync/atomic"
 	"time"
@@ -118,6 +119,9 @@ func (c *Connection) InitConnection() {
 	c.Client = bot.NewClient()
 	c.Client.Auth = *c.BotAuth
 	c.playerList = playerlist.New(c.Client)
+	c.Handler = &GameHandler{
+		eventChan: make(chan *Event),
+	}
 	c.player = basic.NewPlayer(c.Client, basic.DefaultSettings, basic.EventsListener{
 		GameStart:    c.Handler.OnGameStart,
 		Disconnect:   c.Handler.OnDisconnect,
@@ -125,6 +129,13 @@ func (c *Connection) InitConnection() {
 		Death:        c.Handler.OnDeath,
 		Teleported:   c.Handler.OnTeleported,
 	})
+	c.Handler.chatHandler = msg.New(
+		c.Client, c.player, c.playerList, msg.EventsHandler{
+			SystemChat:        c.Handler.OnSystemChat,
+			PlayerChatMessage: c.Handler.OnPlayerChatMessage,
+			DisguisedChat:     c.Handler.OnDIsguisedChat,
+		},
+	)
 
 }
 
