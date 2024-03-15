@@ -20,10 +20,17 @@ type CommConfig struct {
 
 // ServerConfig 服务器配置
 type ServerConfig struct {
-	Address              string `yaml:"address"`
-	ReconnectInterval    int    `yaml:"reconnect_interval"`     // 重连间隔，单位秒，建议长一点
-	Auth                 string `yaml:"auth"`                   // 验证信息
-	PlayerMessageHandler string `yaml:"player_message_handler"` // 玩家消息处理器，这是为了兼容bug
+	Address           string     `yaml:"address"`
+	ReconnectInterval int        `yaml:"reconnect_interval"` // 重连间隔，单位秒，建议长一点
+	Auth              string     `yaml:"auth"`               // 验证信息
+	MessageTemplates  []string   `yaml:"message_templates"`  // 玩家消息处理器，这是为了兼容bug
+	RCON              RCONConfig `yaml:"rcon"`               // RCON 配置
+}
+
+// RCONConfig RCON 配置
+type RCONConfig struct {
+	Address  string `yaml:"address"`  // RCON服务器地址
+	Password string `yaml:"password"` // RCON 密码
 }
 
 // AuthConfig 验证信息

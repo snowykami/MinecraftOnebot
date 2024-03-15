@@ -3,7 +3,7 @@ package main
 import (
 	"MCOnebot/pkg/common"
 	mc "MCOnebot/pkg/minecraft"
-	"github.com/sirupsen/logrus"
+	"fmt"
 	"os"
 )
 
@@ -12,6 +12,25 @@ var (
 )
 
 func main() {
+	fmt.Println(
+		common.Cyan(` __       __  __                                                    ______    __     
+/  \     /  |/  |                                                  /      \  /  |    
+$$  \   /$$ |$$/  _______    ______    _______   ______   ______  /$$$$$$  |_$$ |_   
+$$$  \ /$$$ |/  |/       \  /      \  /       | /      \ /      \ $$ |_ $$// $$   |  
+$$$$  /$$$$ |$$ |$$$$$$$  |/$$$$$$  |/$$$$$$$/ /$$$$$$  |$$$$$$  |$$   |   $$$$$$/   
+$$ $$ $$/$$ |$$ |$$ |  $$ |$$    $$ |$$ |      $$ |  $$/ /    $$ |$$$$/      $$ | __ 
+$$ |$$$/ $$ |$$ |$$ |  $$ |$$$$$$$$/ $$ \_____ $$ |     /$$$$$$$ |$$ |       $$ |/  |
+$$ | $/  $$ |$$ |$$ |  $$ |$$       |$$       |$$ |     $$    $$ |$$ |       $$  $$/ 
+$$/      $$/ $$/ $$/   $$/  $$$$$$$/  $$$$$$$/ $$/       $$$$$$$/ $$/         $$$$/  
+  ______                       _______               __                              
+ /      \                     /       \             /  |                             
+/$$$$$$  | _______    ______  $$$$$$$  |  ______   _$$ |_                            
+$$ |  $$ |/       \  /      \ $$ |__$$ | /      \ / $$   |                           
+$$ |  $$ |$$$$$$$  |/$$$$$$  |$$    $$< /$$$$$$  |$$$$$$/                            
+$$ |  $$ |$$ |  $$ |$$    $$ |$$$$$$$  |$$ |  $$ |  $$ | __                          
+$$ \__$$ |$$ |  $$ |$$$$$$$$/ $$ |__$$ |$$ \__$$ |  $$ |/  |                         
+$$    $$/ $$ |  $$ |$$       |$$    $$/ $$    $$/   $$  $$/                          
+ $$$$$$/  $$/   $$/  $$$$$$$/ $$$$$$$/   $$$$$$/     $$$$/` + "\n\n\n"))
 	err := Init()
 	if err != nil {
 		return
@@ -29,6 +48,7 @@ func main() {
 
 func Init() error {
 	// 初始化检测并创建必要的文件夹，有则跳过
+
 	folders := []string{"data", "logs"}
 	for _, folder := range folders {
 		if _, err := os.Stat(folder); os.IsNotExist(err) {
@@ -40,13 +60,4 @@ func Init() error {
 	}
 	common.Logger.Println("初始化成功")
 	return nil
-}
-
-// ConnectOnebot 连接 Onebot
-func ConnectOnebot() {
-	common.Logger.SetFormatter(&logrus.TextFormatter{
-		ForceColors: true,
-	})
-	common.Logger.SetOutput(os.Stdout)
-	common.Logger.SetLevel(logrus.DebugLevel)
 }

@@ -3,11 +3,12 @@ package minecraft
 import (
 	"MCOnebot/pkg/common"
 	"errors"
+	"fmt"
 	"github.com/Tnze/go-mc/bot"
 	"github.com/Tnze/go-mc/bot/basic"
 	"github.com/Tnze/go-mc/bot/msg"
 	"github.com/Tnze/go-mc/bot/playerlist"
-	"sync/atomic"
+	"regexp"
 	"time"
 )
 
@@ -26,11 +27,19 @@ type Connection struct {
 	ServerConfig common.ServerConfig
 	BotAuth      *bot.Auth
 	Client       *bot.Client
-	Handler      *GameHandler
-	IsAlive      atomic.Bool
 
+	RconClient *RCONClient
+	enableRCON bool
+
+	chatHandler *msg.Manager
+	eventChan   chan *Event
+	// 事件通道
+	closeChan chan int
+	// MC相关
 	player     *basic.Player
 	playerList *playerlist.PlayerList
+	// 消息正则
+	messageRegexps []*regexp.Regexp
 }
 
 // NewClientManager 创建一个新的客户端管理器
@@ -88,12 +97,15 @@ func (m *Manager) Run() {
 			Name:         serverName,
 			ServerConfig: serverConfig,
 			BotAuth:      botAuth,
+
+			closeChan: make(chan int),
 		}
-		connection.IsAlive.Store(true)
 		m.Connections[serverName] = connection
 	}
 	for _, connection := range m.Connections {
+		connection.InitConnection()
 		go connection.Run()
+		go connection.RunRCON()
 		time.Sleep(time.Duration(m.Config.Common.JoinInterval) * time.Second)
 	}
 	select {}
@@ -101,67 +113,118 @@ func (m *Manager) Run() {
 
 // Run 运行客户端,客户端一旦开始运行,自动重连由客户端自行管理
 func (c *Connection) Run() {
-	c.InitConnection()
 	// 循环检测IsAlive状态
 	go c.Join()
+	var reason string
 	for {
-		if c.IsAlive.Load() {
-			time.Sleep(5 * time.Second)
-		} else {
-			common.Logger.Printf("%s 与 %s 的连接断开，将在%d秒后重连", c.BotAuth.Name, c.ServerConfig.Address, c.ServerConfig.ReconnectInterval)
-			time.Sleep(time.Duration(c.ServerConfig.ReconnectInterval) * time.Second)
-			c.Join()
+		//0表示连接失败，1表示出错断开，-1表示正常退出
+		closeEvent := <-c.closeChan
+		switch closeEvent {
+		case 0:
+			{
+				reason = fmt.Sprintf("%s 与 %s 连接失败", c.BotAuth.Name, c.ServerConfig.Address)
+			}
+		case 1:
+			{
+				reason = fmt.Sprintf("%s 与 %s 的连接断开", c.BotAuth.Name, c.ServerConfig.Address)
+			}
+		case -1:
+			{
+				common.Logger.Printf("%s 与 %s 的连接正常退出", c.BotAuth.Name, c.ServerConfig.Address)
+				return
+			}
 		}
+		if c.ServerConfig.ReconnectInterval != 0 {
+			common.Logger.Printf("%s，将在%d秒后重连", reason, c.ServerConfig.ReconnectInterval)
+		} else {
+			common.Logger.Printf("%s，配置文件未设置重连", reason)
+			return
+		}
+
+		time.Sleep(time.Duration(c.ServerConfig.ReconnectInterval) * time.Second)
+		go c.Join()
+
 	}
 }
 
+// InitConnection 初始化连接
 func (c *Connection) InitConnection() {
+
 	c.Client = bot.NewClient()
 	c.Client.Auth = *c.BotAuth
 	c.playerList = playerlist.New(c.Client)
-	c.Handler = &GameHandler{
-		eventChan: make(chan *Event),
-	}
+
 	c.player = basic.NewPlayer(c.Client, basic.DefaultSettings, basic.EventsListener{
-		GameStart:    c.Handler.OnGameStart,
-		Disconnect:   c.Handler.OnDisconnect,
-		HealthChange: c.Handler.OnHealthChange,
-		Death:        c.Handler.OnDeath,
-		Teleported:   c.Handler.OnTeleported,
+		GameStart:    c.OnGameStart,
+		Disconnect:   c.OnDisconnect,
+		HealthChange: c.OnHealthChange,
+		Death:        c.OnDeath,
+		Teleported:   c.OnTeleported,
 	})
-	c.Handler.chatHandler = msg.New(
+	c.chatHandler = msg.New(
 		c.Client, c.player, c.playerList, msg.EventsHandler{
-			SystemChat:        c.Handler.OnSystemChat,
-			PlayerChatMessage: c.Handler.OnPlayerChatMessage,
-			DisguisedChat:     c.Handler.OnDIsguisedChat,
+			SystemChat:        c.OnSystemChat,
+			PlayerChatMessage: c.OnPlayerChatMessage,
+			DisguisedChat:     c.OnDisguisedChat,
 		},
 	)
+	if c.ServerConfig.RCON.Address != "" {
+		common.Logger.Infof("%s(%s) 配置了RCON，将启用RCON", c.ServerConfig.Address, c.Name)
+		c.enableRCON = true
+		c.RconClient = &RCONClient{
+			Address:   c.ServerConfig.RCON.Address,
+			Password:  c.ServerConfig.RCON.Password,
+			closeChan: make(chan int),
+		}
+	} else {
+		c.enableRCON = false
+		common.Logger.Printf("%s(%s) 未配置RCON，部分功能将无法使用", c.ServerConfig.Address, c.Name)
+	}
+	for _, template := range c.ServerConfig.MessageTemplates {
+		c.messageRegexps = append(c.messageRegexps, regexp.MustCompile(template))
+	}
 
 }
 
+// Join 加入服务器
 func (c *Connection) Join() {
 	err := c.Client.JoinServer(c.ServerConfig.Address)
 	if err != nil {
-		common.Logger.Errorf("使用 %s 加入服务器 %s 失败，将在%d秒后重连: %s",
-			c.Client.Auth.Name, c.ServerConfig.Address, c.ServerConfig.ReconnectInterval, err,
-		)
-		c.IsAlive.Store(false)
+		c.closeChan <- 0
+		return
 	} else {
 		common.Logger.Printf("%s 成功加入 %s(%s)", c.Client.Auth.Name, c.ServerConfig.Address, c.Name)
-		c.IsAlive.Store(true)
 	}
 	var pErr bot.PacketHandlerError
 	for {
 		if err = c.Client.HandleGame(); err == nil {
-			c.IsAlive.Store(false)
+			c.closeChan <- 1
 			return
 		}
 		if errors.As(err, &pErr) {
 			common.Logger.Fatalln("处理单个数据包错误:", pErr)
 		} else {
 			common.Logger.Errorln("处理游戏错误:", err)
-			c.IsAlive.Store(false)
+			c.closeChan <- 1
 			return
 		}
 	}
+}
+
+func (c *Connection) GameLogInfof(log string, args ...interface{}) {
+	common.Logger.Infof("%s(%s) | %s",
+		common.Cyan(c.Client.Auth.Name), common.Purple(c.ServerConfig.Address), fmt.Sprintf(log, args...),
+	)
+}
+
+func (c *Connection) GameLogErrorf(log string, args ...interface{}) {
+	common.Logger.Errorf("%s(%s) | %s",
+		common.Cyan(c.Client.Auth.Name), common.Purple(c.ServerConfig.Address), fmt.Sprintf(log, args...),
+	)
+}
+
+func (c *Connection) GameLogWarnf(log string, args ...interface{}) {
+	common.Logger.Warnf("%s(%s) | %s",
+		common.Purple(c.Client.Auth.Name), common.Purple(c.ServerConfig.Address), fmt.Sprintf(log, args...),
+	)
 }
