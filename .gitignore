@@ -3,3 +3,5 @@ config.yml
 .idea
 data
 pkg/go-cqhttp-master
+bin/
+build/
