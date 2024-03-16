@@ -1,13 +1,15 @@
 package minecraft
 
 import (
-	"MCOnebot/pkg/common"
+	"crypto/sha256"
+	"encoding/binary"
 	"fmt"
 	"github.com/Tnze/go-mc/chat"
 	"regexp"
 )
 
 type PlayerMessage struct {
+	Type     string
 	Title    string
 	Username string
 	Message  string
@@ -34,23 +36,59 @@ func FormatParams(text string, regexps []*regexp.Regexp) (map[string]string, err
 }
 
 func FormatPlayerMessage(msg chat.Message, regexps []*regexp.Regexp) (PlayerMessage, error) {
-	text := ""
+	textClearWith := ""
+	textWith := ""
 	if len(msg.With) > 0 {
 		for _, v := range msg.With {
-			text += v.ClearString()
+			textClearWith += v.ClearString()
+			textWith += v.String()
 		}
-	} else {
-		text = msg.ClearString()
 	}
 
-	params, err := FormatParams(text, regexps)
-	if err != nil {
-		common.Logger.Warnf("Failed to format player message: %s", err)
-		return PlayerMessage{}, err
+	text := msg.String()
+	textClear := msg.ClearString()
+
+	texts := []string{textWith, textClearWith, text, textClear}
+
+	for _, text := range texts {
+		params, err := FormatParams(text, regexps)
+		if err != nil {
+			continue
+		}
+		return PlayerMessage{
+			Title:    params["title"],
+			Username: params["player"],
+			Message:  params["message"],
+			Type:     params["type"],
+		}, nil
 	}
-	return PlayerMessage{
-		Title:    params["title"],
-		Username: params["player"],
-		Message:  params["message"],
-	}, nil
+	return PlayerMessage{}, fmt.Errorf("no matching template")
+}
+
+func InArray(element string, array []string) bool {
+	for _, v := range array {
+		if v == element {
+			return true
+		}
+	}
+	return false
+}
+
+func GenerateUserID(name string) int64 {
+	hasher := sha256.New()
+	hasher.Write([]byte(name))
+	hash := hasher.Sum(nil)
+	// 将前8个字节转换为int64
+	intValue := binary.BigEndian.Uint64(hash[:8])
+	return int64(intValue)
+}
+
+func GetRawByList(hashString string, list []string) interface{} {
+	// 从列表中遍历计算hash值，若匹配则返回
+	for _, v := range list {
+		if GenerateUserID(v) == GenerateUserID(hashString) {
+			return v
+		}
+	}
+	return nil
 }

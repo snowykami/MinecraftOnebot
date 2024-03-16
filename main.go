@@ -2,7 +2,8 @@ package main
 
 import (
 	"MCOnebot/pkg/common"
-	mc "MCOnebot/pkg/minecraft"
+	"MCOnebot/pkg/minecraft"
+	"MCOnebot/pkg/onebot"
 	"fmt"
 	"os"
 )
@@ -40,8 +41,18 @@ $$    $$/ $$ |  $$ |$$       |$$    $$/ $$    $$/   $$  $$/
 		return
 	}
 
-	clientManager := mc.NewClientManager(*config)
+	eventChan := make(chan common.Event, 10000)
+	clientManager := minecraft.NewClientManager(*config)
+	clientManager.EventChan = eventChan
 	go clientManager.Run()
+
+	botManager, err := onebot.NewBotManager(*config)
+	botManager.EventChan = eventChan
+	if err != nil {
+		common.Logger.Warnf("初始化 OneBot 失败: %v", err)
+	}
+	go botManager.Run()
+	//go botManager.OpenEventChan()
 
 	select {}
 }
@@ -58,6 +69,7 @@ func Init() error {
 			}
 		}
 	}
+	common.InitDatabase()
 	common.Logger.Println("初始化成功")
 	return nil
 }

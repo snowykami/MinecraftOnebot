@@ -24,6 +24,8 @@ type ServerConfig struct {
 	ReconnectInterval int        `yaml:"reconnect_interval"` // 重连间隔，单位秒，建议长一点
 	Auth              string     `yaml:"auth"`               // 验证信息
 	MessageTemplates  []string   `yaml:"message_templates"`  // 玩家消息处理器，这是为了兼容bug
+	PrivatePrefix     []string   `yaml:"private_prefix"`     // 私聊前缀
+	IgnoreSelf        bool       `yaml:"ignore_self"`        // 忽略自己的消息
 	RCON              RCONConfig `yaml:"rcon"`               // RCON 配置
 }
 
@@ -51,7 +53,7 @@ type OnebotConfig struct {
 
 // BotConfig 本地机器人配置
 type BotConfig struct {
-	SelfID            int64  `yaml:"self_id"`            // 机器人 QQ 号
+	SelfID            string `yaml:"self_id"`            // 机器人 QQ 号
 	HeartbeatInterval int    `yaml:"heartbeat_interval"` // 心跳间隔, 单位为秒
 	PlayerIDType      string `yaml:"player_id_type"`     // 玩家号传输类型
 }

@@ -89,6 +89,7 @@ onebot: # OneBot配置
     的作者交流后推测应该是Mojang在`1.19.1`加入的聊天消息验证所致，该问题大概率出在非原版服务端上，
     目前测试发现`Paper` `Spigot` `purpur`均有此问题，其他服务端未测试，如果你有解决方案欢迎提出。
 - 强烈建议开启正版验证，否则协议库可能会出现蜜汁问题
+- 高版本出现`Chat message validation failure`，请安装`NoEncryption`(https://github.com/Doclic/NoEncryption)插件
 
 ### 其他
 

@@ -1,6 +1,8 @@
 package libonebot
 
-import "encoding/json"
+import (
+	"encoding/json"
+)
 
 // Push 向与 OneBot 实例连接的接受端推送一个事件.
 func (ob *OneBot) Push(event AnyEvent) bool {
@@ -41,16 +43,7 @@ type marshaledEvent struct {
 }
 
 func (ob *OneBot) openEventListenChan() <-chan marshaledEvent {
-	ch := make(chan marshaledEvent, 1)
-	connectMetaEvent := MakeConnectMetaEvent(ob.Impl, Version, OneBotVersion)
-	ob.Logger.Debugf("事件: %#v", connectMetaEvent)
-	ob.Logger.Infof("事件 `%v` 开始推送", connectMetaEvent.Name())
-	eventBytes, _ := json.Marshal(connectMetaEvent)
-	ch <- marshaledEvent{
-		name:  connectMetaEvent.Name(),
-		bytes: eventBytes,
-		raw:   &connectMetaEvent,
-	}
+	ch := make(chan marshaledEvent) // TODO: channel size
 	ob.eventListenChansLock.Lock()
 	ob.eventListenChans = append(ob.eventListenChans, ch)
 	ob.eventListenChansLock.Unlock()

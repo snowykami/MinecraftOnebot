@@ -16,39 +16,43 @@ var defaultName = "MCOnebot"
 
 // Manager 客户端管理器
 type Manager struct {
-	Config      common.Config
-	Connections map[string]*Connection // 客户端连接列表 name/group_id -> client
-	EventChan   chan *Event
-	AuthCache   map[string]*bot.Auth
+	Config         common.Config
+	Connections    map[string]*Connection // 客户端连接列表 name/group_id -> client
+	EventChan      chan common.Event      // 与bot通信的事件通道
+	ConnectionChan chan common.Event      // 与客户端通信的事件通道
+	AuthCache      map[string]*bot.Auth
 }
 
 type Connection struct {
+	// 主体信息
 	Name         string
 	ServerConfig common.ServerConfig
 	BotAuth      *bot.Auth
 	Client       *bot.Client
-
+	// 遥控部分
 	RconClient *RCONClient
 	enableRCON bool
-
+	// 消息处理
 	chatHandler *msg.Manager
-	eventChan   chan *Event
 	// 事件通道
+	eventChan chan common.Event
 	closeChan chan int
 	// MC相关
 	player     *basic.Player
 	playerList *playerlist.PlayerList
-	// 消息正则
+	// 编译后的正则表达式
 	messageRegexps []*regexp.Regexp
+	IntID          int64
 }
 
 // NewClientManager 创建一个新的客户端管理器
 func NewClientManager(config common.Config) *Manager {
 	return &Manager{
-		Config:      config,
-		Connections: make(map[string]*Connection),
-		EventChan:   make(chan *Event),
-		AuthCache:   make(map[string]*bot.Auth),
+		Config:         config,
+		Connections:    make(map[string]*Connection),
+		AuthCache:      make(map[string]*bot.Auth),
+		EventChan:      make(chan common.Event),
+		ConnectionChan: make(chan common.Event, 1),
 	}
 }
 
@@ -83,6 +87,9 @@ func (m *Manager) InitBotAuth() {
 func (m *Manager) Run() {
 	// 等待账户验证完成后才可以启动游戏
 	m.InitBotAuth()
+
+	//go m.HandleEvents()
+	go m.HandleEventsMux()
 	// 初始化连接内容
 	for serverName, serverConfig := range m.Config.Servers {
 		// 当缓存中没有验证信息时，使用默认离线账户
@@ -102,8 +109,10 @@ func (m *Manager) Run() {
 		}
 		m.Connections[serverName] = connection
 	}
+	// 启动连接
 	for _, connection := range m.Connections {
 		connection.InitConnection()
+		go connection.HandleConnectEvents(m.EventChan)
 		go connection.Run()
 		go connection.RunRCON()
 		time.Sleep(time.Duration(m.Config.Common.JoinInterval) * time.Second)
@@ -114,6 +123,7 @@ func (m *Manager) Run() {
 // Run 运行客户端,客户端一旦开始运行,自动重连由客户端自行管理
 func (c *Connection) Run() {
 	// 循环检测IsAlive状态
+	c.IntID = GenerateUserID(c.Name)
 	go c.Join()
 	var reason string
 	for {
@@ -149,6 +159,7 @@ func (c *Connection) Run() {
 
 // InitConnection 初始化连接
 func (c *Connection) InitConnection() {
+	c.eventChan = make(chan common.Event)
 
 	c.Client = bot.NewClient()
 	c.Client.Auth = *c.BotAuth
@@ -202,9 +213,11 @@ func (c *Connection) Join() {
 			return
 		}
 		if errors.As(err, &pErr) {
-			common.Logger.Fatalln("处理单个数据包错误:", pErr)
+			common.Logger.Fatalln("处理数据包错误：%s", pErr)
+			c.closeChan <- 1
+			return
 		} else {
-			common.Logger.Errorln("处理游戏错误:", err)
+			common.Logger.Fatalln("处理游戏错误:", err)
 			c.closeChan <- 1
 			return
 		}

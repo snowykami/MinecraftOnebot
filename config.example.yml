@@ -7,11 +7,13 @@ servers: # 服务器列表
     address: "mc.example.top" # 服务器地址
     reconnect_interval: 5  # 重连间隔，单位秒，0为不重连，建议大一点不然被反作弊封号
     auth: "auth_example_online"  # 服务器的认证信息
-    message_templates:  # 消息模板，用于解析消息，不设置无法接收到玩家消息
+    message_templates:  # 消息模板，用于解析消息，不设置无法接收到玩家消息，从上至下顺序
+      - "^<(?P<type>.+?)> (?P<player>.+?) (?P<message>.+)$" # 匹配`<类型> 玩家名 正文`样式的消息，这个是为了支持私聊消息
       - "^\\[(?P<title>.+?)\\] <(?P<player>.+?)> (?P<message>.+)$"  # 匹配`[头衔] <玩家名> 正文`样式的消息
       - "^<(?P<username>.+?)> (?P<message>.+)$" # 匹配`<用户名> 正文`样式的消息(原版默认样式)
       - "^\\[(?P<title>.+?)\\](?P<player>.+?)  (?P<message>.+)$" # 匹配`[头衔]玩家名  正文`样式的消息
       # 你可以根据需要添加更多的消息模板，以此来适配FairyChat的消息格式
+    private_prefix: ["私信", "私聊", "悄悄话", "私"]  # 私聊前缀，用于识别私聊消息(仅装载FairyChat有效)
     rcon:
         address: "rcon.example.top:25575"  # RCON地址
         password: "your_password"  # RCON密码
