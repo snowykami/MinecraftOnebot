@@ -4,8 +4,10 @@ type Event struct {
 	Type       string
 	SubType    string
 	DetailType string
-	GroupID    string
-	UserID     string
+	GroupID    int64
+	UserID     int64
+	Username   string
+	GroupName  string
 	OperatorID string
 	MessageID  string
 	UserTitle  string

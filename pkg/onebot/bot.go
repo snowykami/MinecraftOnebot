@@ -4,7 +4,6 @@ import (
 	"MCOnebot/pkg/common"
 	libobv11 "MCOnebot/pkg/libonebotv11"
 	libobv12 "MCOnebot/pkg/libonebotv12"
-	"MCOnebot/pkg/minecraft"
 	"fmt"
 	"strconv"
 	"time"
@@ -18,6 +17,7 @@ type Manager struct {
 	V11Bot    *libobv11.OneBot
 	V12Bot    *libobv12.OneBot
 	EventChan chan common.Event
+	SendChan  chan common.Event
 }
 
 func CreateBots(config common.Config) (*libobv11.OneBot, *libobv12.OneBot, error) {
@@ -125,13 +125,12 @@ func CreateBots(config common.Config) (*libobv11.OneBot, *libobv12.OneBot, error
 	var v12Bot *libobv12.OneBot
 	if v11Used {
 		//intSelfID, err := strconv.ParseInt(config.Onebot.Bot.SelfID, 10, 64)
-		intSelfID := minecraft.GenerateUserID(config.Onebot.Bot.SelfID)
 		//if err != nil {
 		//	return nil, nil, err
 		//}
 		self := &libobv11.Self{
 			Platform: Platform,
-			UserID:   intSelfID,
+			UserID:   config.Onebot.Bot.SelfID,
 		}
 		v11Bot = libobv11.NewOneBot(Platform, self, v11BotConfig)
 	} else {
@@ -140,7 +139,7 @@ func CreateBots(config common.Config) (*libobv11.OneBot, *libobv12.OneBot, error
 	if v12Used {
 		self := &libobv12.Self{
 			Platform: Platform,
-			UserID:   config.Onebot.Bot.SelfID,
+			UserID:   config.Onebot.Bot.Nickname,
 		}
 		v12Bot = libobv12.NewOneBot(Platform, self, v12BotConfig)
 	} else {
@@ -162,7 +161,7 @@ func NewBotManager(config common.Config) (*Manager, error) {
 }
 
 func (m *Manager) Run() {
-	//go m.OpenEventChan()
+	go m.OpenEventChan()
 	go m.HandleActionMux()
 	if m.V11Bot != nil {
 		common.Logger.Info("OneBot v11 启动中...")
@@ -179,7 +178,6 @@ func (m *Manager) OpenEventChan() {
 	var event common.Event
 	for {
 		event = <-m.EventChan
-		common.Logger.Infof("Bot收到事件: %v", event.Message)
 		m.Push(event)
 	}
 }
@@ -196,15 +194,13 @@ func (m *Manager) Push(event common.Event) {
 			message := libobv11.Message{
 				libobv11.TextSegment(event.Message),
 			}
-			userID := minecraft.GenerateUserID(event.UserID)
 			if event.DetailType == "private" {
 				event := libobv11.MakePrivateMessageEvent(
-					messageID, message, fmt.Sprintf("%v", event.Data["message"]), userID, event.UserID)
+					messageID, message, fmt.Sprintf("%v", event.Data["message"]), event.UserID, event.Username)
 				m.V11Bot.Push(&event)
 			} else if event.DetailType == "group" {
-				GroupID := minecraft.GenerateUserID(event.GroupID)
 				event := libobv11.MakeGroupMessageEvent(
-					time.Now(), messageID, message, fmt.Sprintf("%v", event.Data["message"]), GroupID, userID, event.UserID, event.UserTitle)
+					time.Now(), messageID, message, fmt.Sprintf("%v", event.Data["message"]), event.GroupID, event.UserID, event.Username, event.UserTitle)
 				m.V11Bot.Push(&event)
 			}
 		}
@@ -215,12 +211,12 @@ func (m *Manager) Push(event common.Event) {
 		case "notice":
 			if event.DetailType == "group_member_increase" {
 				obEvent := libobv12.MakeGroupMemberIncreaseNoticeEvent(
-					time.Now(), event.GroupID, event.UserID, event.OperatorID)
+					time.Now(), event.GroupName, event.Username, event.OperatorID)
 				obEvent.SubType = event.SubType
 				m.V12Bot.Push(&obEvent)
 			} else if event.DetailType == "group_member_decrease" {
 				obEvent := libobv12.MakeGroupMemberDecreaseNoticeEvent(
-					time.Now(), event.GroupID, event.UserID, event.OperatorID)
+					time.Now(), event.GroupName, event.Username, event.OperatorID)
 				obEvent.SubType = event.SubType
 				m.V12Bot.Push(&obEvent)
 			}
@@ -231,11 +227,11 @@ func (m *Manager) Push(event common.Event) {
 			}
 			if event.DetailType == "private" {
 				event := libobv12.MakePrivateMessageEvent(
-					time.Now(), messageID, message, event.Message, event.UserID)
+					time.Now(), messageID, message, event.Message, event.Username)
 				m.V12Bot.Push(&event)
 			} else if event.DetailType == "group" {
 				event := libobv12.MakeGroupMessageEvent(
-					time.Now(), messageID, message, event.Message, event.GroupID, event.UserID)
+					time.Now(), messageID, message, event.Message, event.GroupName, event.Username)
 				m.V12Bot.Push(&event)
 			}
 		}

@@ -17,15 +17,17 @@ var defaultName = "MCOnebot"
 // Manager 客户端管理器
 type Manager struct {
 	Config         common.Config
-	Connections    map[string]*Connection // 客户端连接列表 name/group_id -> client
-	EventChan      chan common.Event      // 与bot通信的事件通道
-	ConnectionChan chan common.Event      // 与客户端通信的事件通道
+	Connections    []*Connection     // 客户端连接列表 name/group_id -> client
+	EventChan      chan common.Event // Minecraft -> Bot
+	SendChan       chan common.Event // Bot -> Minecraft
+	ConnectionChan chan common.Event // 与客户端通信的事件通道
 	AuthCache      map[string]*bot.Auth
 }
 
 type Connection struct {
 	// 主体信息
 	Name         string
+	ID           int64
 	ServerConfig common.ServerConfig
 	BotAuth      *bot.Auth
 	Client       *bot.Client
@@ -41,15 +43,16 @@ type Connection struct {
 	player     *basic.Player
 	playerList *playerlist.PlayerList
 	// 编译后的正则表达式
-	messageRegexps []*regexp.Regexp
-	IntID          int64
+	messageRegexps  []*regexp.Regexp
+	illegalChar     []string
+	lastSentMessage string
 }
 
 // NewClientManager 创建一个新的客户端管理器
 func NewClientManager(config common.Config) *Manager {
 	return &Manager{
 		Config:         config,
-		Connections:    make(map[string]*Connection),
+		Connections:    make([]*Connection, 0),
 		AuthCache:      make(map[string]*bot.Auth),
 		EventChan:      make(chan common.Event),
 		ConnectionChan: make(chan common.Event, 1),
@@ -87,11 +90,9 @@ func (m *Manager) InitBotAuth() {
 func (m *Manager) Run() {
 	// 等待账户验证完成后才可以启动游戏
 	m.InitBotAuth()
-
-	//go m.HandleEvents()
 	go m.HandleEventsMux()
 	// 初始化连接内容
-	for serverName, serverConfig := range m.Config.Servers {
+	for _, serverConfig := range m.Config.Servers {
 		// 当缓存中没有验证信息时，使用默认离线账户
 		botAuth, ok := m.AuthCache[serverConfig.Auth]
 		if !ok {
@@ -101,17 +102,19 @@ func (m *Manager) Run() {
 			}
 		}
 		connection := &Connection{
-			Name:         serverName,
+			Name:         serverConfig.Name,
 			ServerConfig: serverConfig,
 			BotAuth:      botAuth,
+			ID:           serverConfig.ID,
 
 			closeChan: make(chan int),
 		}
-		m.Connections[serverName] = connection
+		m.Connections = append(m.Connections, connection)
 	}
 	// 启动连接
 	for _, connection := range m.Connections {
 		connection.InitConnection()
+		connection.illegalChar = m.Config.Common.IllegalChar
 		go connection.HandleConnectEvents(m.EventChan)
 		go connection.Run()
 		go connection.RunRCON()
@@ -123,7 +126,6 @@ func (m *Manager) Run() {
 // Run 运行客户端,客户端一旦开始运行,自动重连由客户端自行管理
 func (c *Connection) Run() {
 	// 循环检测IsAlive状态
-	c.IntID = GenerateUserID(c.Name)
 	go c.Join()
 	var reason string
 	for {

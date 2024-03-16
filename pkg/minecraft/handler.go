@@ -4,7 +4,6 @@ import (
 	"MCOnebot/pkg/common"
 	"fmt"
 	"github.com/Tnze/go-mc/chat"
-	"strconv"
 	"strings"
 )
 
@@ -49,8 +48,11 @@ func (c *Connection) OnPlayerChatMessage(msg chat.Message, overlay bool) error {
 }
 
 func (c *Connection) OnSystemChat(msg chat.Message, validated bool) error {
-	pm, err := FormatPlayerMessage(msg, c.messageRegexps)
+	pm, err := FormatPlayerMessage(msg, c.messageRegexps, c.playerList)
 	if err != nil {
+		if c.ServerConfig.IgnoreSelf && msg.ClearString() == c.lastSentMessage {
+			return nil
+		}
 		c.GameLogInfof("%s: %s", common.Yellow("System"), msg)
 		var event common.Event
 		if strings.HasSuffix(msg.ClearString(), "joined the game") {
@@ -58,8 +60,10 @@ func (c *Connection) OnSystemChat(msg chat.Message, validated bool) error {
 			event = common.Event{
 				Type:       "notice",
 				DetailType: "group_member_increase",
-				UserID:     Username,
-				GroupID:    c.Name,
+				Username:   Username,
+				UserID:     GenerateIntID(Username),
+				GroupName:  c.Name,
+				GroupID:    c.ID,
 				SubType:    "join",
 				OperatorID: SystemUser,
 				Data:       map[string]interface{}{},
@@ -69,8 +73,10 @@ func (c *Connection) OnSystemChat(msg chat.Message, validated bool) error {
 			event = common.Event{
 				Type:       "notice",
 				DetailType: "group_member_decrease",
-				UserID:     Username,
-				GroupID:    c.Name,
+				Username:   Username,
+				UserID:     GenerateIntID(Username),
+				GroupName:  c.Name,
+				GroupID:    c.ID,
 				OperatorID: SystemUser,
 				SubType:    "leave",
 				Data:       map[string]interface{}{},
@@ -79,8 +85,10 @@ func (c *Connection) OnSystemChat(msg chat.Message, validated bool) error {
 			event = common.Event{
 				Type:       "message",
 				DetailType: "group",
-				GroupID:    c.Name,
-				UserID:     "System",
+				GroupName:  c.Name,
+				GroupID:    c.ID,
+				Username:   "System",
+				UserID:     GenerateIntID("System"),
 				Message:    msg.ClearString(),
 			}
 		}
@@ -89,35 +97,37 @@ func (c *Connection) OnSystemChat(msg chat.Message, validated bool) error {
 	} else {
 		// 成功匹配为玩家消息
 		// 推送
+		if c.ServerConfig.IgnoreSelf && RemoveANSI(pm.Username) == c.BotAuth.Name {
+			return nil
+		}
 		var event common.Event
 		if InArray(pm.Type, c.ServerConfig.PrivatePrefix) {
 			event = common.Event{
 				Type:       "message",
 				DetailType: "private",
-				UserID:     pm.Username,
-				GroupID:    c.Name,
-				Message:    pm.Message,
+				Username:   RemoveANSI(pm.Username),
+				UserID:     GenerateIntID(RemoveANSI(pm.Username)),
+				GroupName:  c.Name,
+				GroupID:    c.ID,
+				Message:    RemoveANSI(pm.Message),
 			}
 		} else {
 			event = common.Event{
 				Type:       "message",
 				DetailType: "group",
-				UserID:     pm.Username,
-				GroupID:    c.Name,
-				UserTitle:  pm.Title,
-				Message:    pm.Message,
+				Username:   RemoveANSI(pm.Username),
+				UserID:     GenerateIntID(RemoveANSI(pm.Username)),
+				GroupName:  c.Name,
+				GroupID:    c.ID,
+				UserTitle:  RemoveANSI(pm.Title),
+				Message:    RemoveANSI(pm.Message),
 			}
 		}
 		c.eventChan <- event
 		// 日志输出
-		if c.ServerConfig.IgnoreSelf && pm.Username == c.BotAuth.Name {
-			return nil
-		}
 		msgText := ""
 		if InArray(pm.Type, c.ServerConfig.PrivatePrefix) {
 			msgText += common.Blue("私聊") + " "
-		} else {
-			msgText += common.Blue("公共") + " "
 		}
 		if pm.Title != "" {
 			msgText += fmt.Sprintf("[%s]", common.Cyan(pm.Title)) + " "
@@ -135,61 +145,86 @@ func (c *Connection) OnDisguisedChat(msg chat.Message) error {
 	return nil
 }
 
-func (c *Connection) HandleConnectEvents(toManagerChan chan common.Event) {
-	// 连接把事件传给管理器
-	go func() {
-		for {
-			select {
-			case event := <-toManagerChan:
-				common.Logger.Infof("监听器接收到事件: %v\n", event)
+// SendMessage 自动处理消息，用go执行
+func (c *Connection) SendMessage(message string) error {
+	for _, v := range c.illegalChar {
+		message = strings.ReplaceAll(message, v, "")
+	}
+	c.lastSentMessage = message
+	// 多行消息分开发送，先判断有无启用RCON，有则使用RCON发送tellraw
+	if c.enableRCON && c.RconClient.IsAlive.Load() && c.RconClient.conn != nil {
+		go func() {
+			//err := c.RconClient.SendCommand(fmt.Sprintf("tellraw @a {\"text\":\"%s\"}", message))
+			//if err != nil {
+			//	return
+			//}
+			for _, v := range strings.Split(message, "\n") {
+				common.Logger.Infof("RCON: %s", v)
+				err := c.RconClient.conn.Cmd(fmt.Sprintf("say %s", v))
+				if err != nil {
+				}
 			}
+		}()
+		return nil
+	}
+	for _, v := range strings.Split(message, "\n") {
+		err := c.chatHandler.SendMessage(v)
+		if err != nil {
+			return err
 		}
-	}()
+	}
+	return nil
+}
+
+func (c *Connection) HandleConnectEvents(toManagerChan chan common.Event) {
 	for {
-		event := <-c.eventChan
-		common.Logger.Infof("发送给Bot事件: %v", event.Message)
-		toManagerChan <- event
+		select {
+		case event := <-c.eventChan:
+			toManagerChan <- event
+		}
 	}
 }
 
-//func (m *Manager) HandleEvents() {
-//	// 把事件传给Onebot
-//	for {
-//		event := <-m.ConnectionChan
-//		common.Logger.Infof("发送给Bot事件: %v", event.Message)
-//		m.EventChan <- event
-//	}
-//}
-
-func (m *Manager) GetConnectionByIntIDStr(intID string) (*Connection, error) {
+func (m *Manager) GetConnectionByIntID(intID int64) (*Connection, error) {
 	for _, v := range m.Connections {
-		if strconv.FormatInt(v.IntID, 10) == intID {
+		if v.ID == intID {
 			return v, nil
 		}
 	}
-	return nil, fmt.Errorf("未找到服务器: %s", intID)
+	return nil, fmt.Errorf("未找到服务器: %d", intID)
+}
+
+func (m *Manager) GetConnectionByName(name string) (*Connection, error) {
+	for _, v := range m.Connections {
+		if v.Name == name {
+			return v, nil
+		}
+	}
+	return nil, fmt.Errorf("未找到服务器: %s", name)
+
 }
 
 func (m *Manager) HandleEventsMux() {
 	for {
-		event := <-m.EventChan
+		event := <-m.SendChan
 		if event.Version == 11 {
 			if event.Type == "message" {
-				if event.SubType == "group" {
+
+				if event.DetailType == "group" {
 					// 获取serverName，并检测是否非nil
-					connection, err := m.GetConnectionByIntIDStr(event.GroupID)
+					connection, err := m.GetConnectionByIntID(event.GroupID)
 					if connection == nil {
 						common.Logger.Warnln(err)
 					} else {
-						err := connection.chatHandler.SendMessage(event.Message)
+						err := connection.SendMessage(event.Message)
 						if err != nil {
 							common.Logger.Warnln(err)
 						}
 					}
 					// 传递事件
-				} else if event.SubType == "private" {
+				} else if event.DetailType == "private" {
 					// 获取serverName，并检测是否非nil
-					connection, err := m.GetConnectionByIntIDStr(event.GroupID)
+					connection, err := m.GetConnectionByIntID(event.GroupID)
 					if connection == nil {
 						common.Logger.Warnln(err)
 					} else {
@@ -203,18 +238,19 @@ func (m *Manager) HandleEventsMux() {
 		} else if event.Version == 12 {
 			// 12无需处理ID，原始ID即为serverName
 			if event.Type == "message" {
-				if event.SubType == "group" {
+
+				if event.DetailType == "group" {
 					// 获取serverName，并检测是否非nil
-					connection, ok := m.Connections[event.GroupID]
-					if !ok {
-						common.Logger.Warnf("未找到服务器: %s", event.GroupID)
+					connection, err := m.GetConnectionByName(event.GroupName)
+					if err != nil {
+						common.Logger.Warnf("未找到服务器: %s", event.GroupName)
 					} else {
-						err := connection.chatHandler.SendMessage(event.Message)
+						err := connection.SendMessage(event.Message)
 						if err != nil {
 							common.Logger.Warnln(err)
 						}
 					}
-				} else if event.SubType == "private" {
+				} else if event.DetailType == "private" {
 					//// 获取serverName，并检测是否非nil
 					//connection, ok := m.Connections[event.GroupID]
 					//if !ok {

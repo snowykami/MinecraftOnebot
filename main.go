@@ -41,19 +41,20 @@ $$    $$/ $$ |  $$ |$$       |$$    $$/ $$    $$/   $$  $$/
 		return
 	}
 
-	eventChan := make(chan common.Event, 10000)
+	eventChan := make(chan common.Event, 1)
+	sendChan := make(chan common.Event, 1)
 	clientManager := minecraft.NewClientManager(*config)
 	clientManager.EventChan = eventChan
+	clientManager.SendChan = sendChan
 	go clientManager.Run()
 
 	botManager, err := onebot.NewBotManager(*config)
 	botManager.EventChan = eventChan
+	botManager.SendChan = sendChan
 	if err != nil {
 		common.Logger.Warnf("初始化 OneBot 失败: %v", err)
 	}
 	go botManager.Run()
-	//go botManager.OpenEventChan()
-
 	select {}
 }
 

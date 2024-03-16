@@ -124,6 +124,8 @@ func ReplySegment(messageID string, userID string) Segment {
 // https://12.onebot.dev/interface/message/actions/
 
 const (
-	ActionSendMessage   = "send_msg"   // 发送消息
-	ActionDeleteMessage = "delete_msg" // 删除消息
+	ActionSendMessage        = "send_msg"         // 发送消息
+	ActionDeleteMessage      = "delete_msg"       // 删除消息
+	ActionSendGroupMessage   = "send_group_msg"   // 发送群消息
+	ActionSendPrivateMessage = "send_private_msg" // 发送私聊消息
 )

@@ -7,19 +7,22 @@ import (
 
 // Config 配置
 type Config struct {
-	Common  CommConfig              `yaml:"common"`  // 通用配置
-	Servers map[string]ServerConfig `yaml:"servers"` // 服务器列表
-	Auth    map[string]AuthConfig   `yaml:"auth"`    // 验证信息
-	Onebot  OnebotConfig            `yaml:"onebot"`  // Onebot 配置列表
+	Common  CommConfig            `yaml:"common"`  // 通用配置
+	Servers []ServerConfig        `yaml:"servers"` // 服务器列表
+	Auth    map[string]AuthConfig `yaml:"auth"`    // 验证信息
+	Onebot  OnebotConfig          `yaml:"onebot"`  // Onebot 配置列表
 }
 
 // CommConfig 通用配置
 type CommConfig struct {
-	JoinInterval int `yaml:"join_interval"` // 加入间隔，单位秒，建议长一点
+	JoinInterval int      `yaml:"join_interval"` // 加入间隔，单位秒，建议长一点
+	IllegalChar  []string `yaml:"illegal_char"`  // 非法字符
 }
 
 // ServerConfig 服务器配置
 type ServerConfig struct {
+	Name              string     `yaml:"name"` // 服务器名称
+	ID                int64      `yaml:"id"`   // 服务器ID
 	Address           string     `yaml:"address"`
 	ReconnectInterval int        `yaml:"reconnect_interval"` // 重连间隔，单位秒，建议长一点
 	Auth              string     `yaml:"auth"`               // 验证信息
@@ -53,7 +56,8 @@ type OnebotConfig struct {
 
 // BotConfig 本地机器人配置
 type BotConfig struct {
-	SelfID            string `yaml:"self_id"`            // 机器人 QQ 号
+	Nickname          string `yaml:"nickname"`           // 机器人 QQ 号
+	SelfID            int64  `yaml:"self_id"`            // 机器人 QQ 号
 	HeartbeatInterval int    `yaml:"heartbeat_interval"` // 心跳间隔, 单位为秒
 	PlayerIDType      string `yaml:"player_id_type"`     // 玩家号传输类型
 }
