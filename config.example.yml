@@ -3,7 +3,8 @@ common: # 通用配置
   join_interval: 3  # 加入服务器的间隔，单位秒，防止微软验证失败
 
 servers: # 服务器列表
-  server1: # 服务器名称，对应GroupID，v11下为数字，v12下为字符串
+  - id: 100001
+    name: server1 # 服务器名称，对应GroupID，v11下为数字，v12下为字符串
     address: "mc.example.top" # 服务器地址
     reconnect_interval: 5  # 重连间隔，单位秒，0为不重连，建议大一点不然被反作弊封号
     auth: "auth_example_online"  # 服务器的认证信息
@@ -18,7 +19,8 @@ servers: # 服务器列表
         address: "rcon.example.top:25575"  # RCON地址
         password: "your_password"  # RCON密码
 
-  server2:
+  - id: 100002
+    name: server2
     address: "server.top"
     reconnect_interval: 5
     auth: "auth_example_offline"
