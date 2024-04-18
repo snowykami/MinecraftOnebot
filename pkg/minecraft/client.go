@@ -3,7 +3,6 @@ package minecraft
 import (
 	"MCOnebot/pkg/common"
 	"errors"
-	"fmt"
 	"github.com/Tnze/go-mc/bot"
 	"github.com/Tnze/go-mc/bot/basic"
 	"github.com/Tnze/go-mc/bot/msg"
@@ -31,7 +30,6 @@ func (c *Client) Start() {
 	c.playerList = playerlist.New(c.botClient)
 	c.player = basic.NewPlayer(c.botClient, basic.DefaultSettings, basic.EventsListener{})
 	c.chatHandler = msg.New(c.botClient, c.player, c.playerList, EventHandler)
-	fmt.Println(c.chatHandler, c.playerList, c.player, c.botClient)
 
 	go c.Connect()
 	for {
@@ -55,10 +53,14 @@ func (c *Client) Connect() {
 	if err != nil {
 		common.Logger.Errorf("连接服务器 %s 失败: %v", c.Config.Address, err)
 		c.stopConnect <- err.Error()
+		return
 	}
 
 	common.Logger.Infof("连接服务器 %s 成功", c.Config.Address)
-	c.chatHandler.SendMessage("我进来了")
+	err = c.chatHandler.SendMessage("我进来了")
+	if err != nil {
+		return
+	}
 
 	var perr bot.PacketHandlerError
 	for {
