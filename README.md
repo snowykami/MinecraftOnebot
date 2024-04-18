@@ -3,7 +3,6 @@
 ### 这是什么
 
 - 一个基于OneBot标准的Minecraft服务器聊天机器人实现端，目标是兼容现有OneBot v11/12标准的Bot，使开发者无需改代码即可在MC中使用Bot
-- 还没有Release，快了快了...
 
 ### 特性
 
@@ -16,63 +15,48 @@
 
 ```yaml
 # 这是一个示例配置文件，你可以根据自己的需求进行修改保存为config.yml
-common: # 通用配置
-  join_interval: 3  # 加入服务器的间隔，单位秒，防止微软验证失败
+minecraft:
+  servers:
+    - address: "127.0.0.1:25565"
+      id: 112121212 # 服务器id
+      auth: "auth_2"
+      ignore_self: false
+      reconnect_interval: 5
 
-servers: # 服务器列表
-  server1: # 服务器名称，对应GroupID，v11下为数字，v12下为字符串
-    address: "mc.example.top" # 服务器地址
-    reconnect_interval: 5  # 重连间隔，单位秒，0为不重连，建议大一点不然被反作弊封号
-    auth: "auth_example_online"  # 服务器的认证信息
-    message_templates:  # 消息模板，用于解析消息，不设置无法接收到玩家消息
-      - "^\\[(?P<title>.+?)\\] <(?P<player>.+?)> (?P<message>.+)$"  # 匹配`[头衔] <玩家名> 正文`样式的消息
-      - "^<(?P<username>.+?)> (?P<message>.+)$" # 匹配`<用户名> 正文`样式的消息(原版默认样式)
-      - "^\\[(?P<title>.+?)\\](?P<player>.+?)  (?P<message>.+)$" # 匹配`[头衔]玩家名  正文`样式的消息
-      # 你可以根据需要添加更多的消息模板，以此来适配FairyChat的消息格式
-    rcon:
-        address: "rcon.example.top:25575"  # RCON地址
-        password: "your_password"  # RCON密码
+  auths:
+    - name: "auth_online"
+      online: true
 
-  server2:
-    address: "server.top"
-    reconnect_interval: 5
-    auth: "auth_example_offline"
-    #...
+    - name: "auth_2"
+      online: false
+      player: LiteyukiOffline
 
-auth: # 自定义认证信息
-  auth_example_online: # 服务器的认证信息
-    online: true  # 在线模式下使用交互式登录
-    name:   # 在线模式下不生效
 
-  auth_example_offline:
-    online: false
-    name: "Bot"
+onebot:
+  implementations:
+    - type: "reverse_websocket"  # ws rws http httppost
+      address: "ws://127.0.0.1:20216/onebot/v11/ws"
+      access_token: ""
+      reconnect_interval: 5
 
-onebot: # OneBot配置
-  reverse_websocket: # 反向Websocket配置(作客户端)
-    - address: "ws://127.0.0.1:8080/onebot/v12"
-      reconnect_interval: 5  # 重连间隔，单位秒，0为不重连
-      access_token:  # 反向Websocket的访问令牌(可选，下同)
-      protocol_version: 12  # OneBot协议版本，v11或v12(可选，下同，默认12)
-  websocket: # 正向Websocket配置(作服务端)
-    - host: "127.0.0.1"
-      port: 8080
-      access_token:
-      protocol_version: 12
-  http_webhook: # HTTP Webhook(作客户端)
-    - address:
-      access_token:
-      protocol_version: 12
-  http: # HTTP(作服务端)
-    - host: "127.0.0.1"
-      port: 8080
-      access_token:
-      protocol_version: 12
+    - type: "forward_websocket"
+      host: "127.0.0.1"
+      port: 20217
+      access_token: ""
 
-  bot:
-    heartbeat_interval: 20  # 心跳间隔，单位秒
-    self_id: 114514  # 机器人的ID，v11下需使用数字形式，v12下使用字符串形式，要兼容的话请使用字符串数字形式
-    player_id_type: "uuid_int"  # 为兼容onebotv11，用户的ID传输模式，uuid_int为UUID的整数形式(在某些语言下可能无法处理较大的整数，例如Javascript)，primary_key为使用数据库自增主键作为id(自动映射，但是在不同的bot上该值也不同)
+    - type: "http_post"
+      address: "http://127.0.0.1:20218/onebot/v11"
+      access_token: ""
+
+    - type: "http"
+      host: "127.0.0.1"
+      port: 20219
+      access_token: ""
+
+redis:
+  address: "127.0.0.1:6379"
+  password: ""
+  db: 0
 ```
 
 ### TODO
@@ -83,11 +67,13 @@ onebot: # OneBot配置
 
 ### 常见问题
 
-- Bot也是玩家，死亡后是不能发送消息的，目前暂时不能自动复活，请确保你的Bot在游戏中是安全的，不要被刷出来的怪物杀死，若出现`Chat was disabled in client option`大概率是你的bot死了。
+-
+Bot也是玩家，死亡后是不能发送消息的，目前暂时不能自动复活，请确保你的Bot在游戏中是安全的，不要被刷出来的怪物杀死，若出现`Chat was disabled in client option`
+大概率是你的bot死了。
 - 某些情况下玩家消息会被接收为`system`，所以提供了`player_message_handler`选项来决定是否从系统消息中正则匹配提取玩家消息，
-    当然这也会导致某些情况下系统消息被误判为玩家消息，本人能力有限，后续了解MC协议后会尝试修复。与`go-mc`
-    的作者交流后推测应该是Mojang在`1.19.1`加入的聊天消息验证所致，该问题大概率出在非原版服务端上，
-    目前测试发现`Paper` `Spigot` `purpur`均有此问题，其他服务端未测试，如果你有解决方案欢迎提出。
+  当然这也会导致某些情况下系统消息被误判为玩家消息，本人能力有限，后续了解MC协议后会尝试修复。与`go-mc`
+  的作者交流后推测应该是Mojang在`1.19.1`加入的聊天消息验证所致，该问题大概率出在非原版服务端上，
+  目前测试发现`Paper` `Spigot` `purpur`均有此问题，其他服务端未测试，如果你有解决方案欢迎提出。
 - 强烈建议开启正版验证，否则协议库可能会出现蜜汁问题
 - 高版本出现`Chat message validation failure`，请安装`NoEncryption`(https://github.com/Doclic/NoEncryption)插件
 
