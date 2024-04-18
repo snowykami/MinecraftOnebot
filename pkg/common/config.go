@@ -5,111 +5,90 @@ import (
 	"os"
 )
 
-// Config 配置
+// Config 配置文件结构
 type Config struct {
-	Common  CommConfig            `yaml:"common"`  // 通用配置
-	Servers []ServerConfig        `yaml:"servers"` // 服务器列表
-	Auth    map[string]AuthConfig `yaml:"auth"`    // 验证信息
-	Onebot  OnebotConfig          `yaml:"onebot"`  // Onebot 配置列表
+	Minecraft MinecraftConfig `yaml:"minecraft"`
+	Onebot    OnebotConfig    `yaml:"onebot"`
+	Redis     RedisConfig     `yaml:"redis"`
 }
 
-// CommConfig 通用配置
-type CommConfig struct {
-	JoinInterval int      `yaml:"join_interval"` // 加入间隔，单位秒，建议长一点
-	IllegalChar  []string `yaml:"illegal_char"`  // 非法字符
+type MinecraftConfig struct {
+	Servers []ServerConfig `yaml:"servers"`
+	Auths   []AuthConfig   `yaml:"auths"`
 }
 
-// ServerConfig 服务器配置
 type ServerConfig struct {
-	Name              string     `yaml:"name"` // 服务器名称
-	ID                int64      `yaml:"id"`   // 服务器ID
-	Address           string     `yaml:"address"`
-	ReconnectInterval int        `yaml:"reconnect_interval"` // 重连间隔，单位秒，建议长一点
-	Auth              string     `yaml:"auth"`               // 验证信息
-	MessageTemplates  []string   `yaml:"message_templates"`  // 玩家消息处理器，这是为了兼容bug
-	PrivatePrefix     []string   `yaml:"private_prefix"`     // 私聊前缀
-	IgnoreSelf        bool       `yaml:"ignore_self"`        // 忽略自己的消息
-	RCON              RCONConfig `yaml:"rcon"`               // RCON 配置
+	Address           string `yaml:"address"`
+	ID                int64  `yaml:"id"`
+	Auth              string `yaml:"auth"`
+	IgnoreSelf        bool   `yaml:"ignore_self"`
+	ReconnectInterval int    `yaml:"reconnect_interval"`
 }
 
-// RCONConfig RCON 配置
-type RCONConfig struct {
-	Address  string `yaml:"address"`  // RCON服务器地址
-	Password string `yaml:"password"` // RCON 密码
-}
-
-// AuthConfig 验证信息
 type AuthConfig struct {
-	Online       bool   `yaml:"online"`
-	Name         string `yaml:"name"`
-	JoinInterval int    `yaml:"join_interval"` // 加入间隔，单位秒，建议长一点
+	Name   string `yaml:"name"`
+	Online bool   `yaml:"online"`
+	Player string `yaml:"player"` // 离线模式下为玩家名，正版模式留空
 }
 
-// OnebotConfig Onebot 配置
 type OnebotConfig struct {
-	ReverseWebSocket []ReverseWebSocketConfig `yaml:"reverse_websocket"` // 反向 WebSocket 配置列表
-	WebSocket        []WebSocketConfig        `yaml:"websocket"`         // 正向 WebSocket 配置列表
-	HTTPWebhook      []HTTPWebhookConfig      `yaml:"http_webhook"`      // HTTP POST 配置(反向 HTTP)
-	HTTP             []HTTPConfig             `yaml:"http"`              // HTTP 配置(正向 HTTP)
-	Bot              BotConfig                `yaml:"bot"`               // 机器人配置
+	impls           []map[string]any `yaml:"implementations"` // 动态类型列表，根据类型解析
+	Implementations []interface{}
 }
 
-// BotConfig 本地机器人配置
-type BotConfig struct {
-	Nickname          string `yaml:"nickname"`           // 机器人 QQ 号
-	SelfID            int64  `yaml:"self_id"`            // 机器人 QQ 号
-	HeartbeatInterval int    `yaml:"heartbeat_interval"` // 心跳间隔, 单位为秒
-	PlayerIDType      string `yaml:"player_id_type"`     // 玩家号传输类型
+type OnebotImplementation interface {
 }
 
-// ReverseWebSocketConfig 反向 WebSocket 配置
-type ReverseWebSocketConfig struct {
-	Address           string `yaml:"address"`            // 服务器地址 ws://example.com:8080/onebot/
-	ReconnectInterval int    `yaml:"reconnect_interval"` // 重连间隔, 单位为秒
-	AccessToken       string `yaml:"access_token"`       // AccessToken 用于验证连接的令牌
-	ProtocolVersion   int    `yaml:"protocol_version"`   // 协议版本11/12
+type RedisConfig struct {
+	Address  string `yaml:"address"`
+	Password string `yaml:"password"`
+	DB       int    `yaml:"db"`
 }
 
-// WebSocketConfig 正向 WebSocket 配置
-type WebSocketConfig struct {
-	Host            string `yaml:"host"`             // 监听主机地址
-	Port            int    `yaml:"port"`             // 绑定端口
-	AccessToken     string `yaml:"access_token"`     // AccessToken 用于验证连接的令牌
-	ProtocolVersion int    `yaml:"protocol_version"` // 协议版本11/12
+// ImplConfig Implementations
+type ImplConfig struct {
+	Type         string `yaml:"type"`
+	AccessTokens string `yaml:"access_tokens"`
 }
 
-// HTTPWebhookConfig HTTP POST 配置
-type HTTPWebhookConfig struct {
-	Address         string `yaml:"address"`          // 上报地址
-	AccessToken     string `yaml:"access_token"`     // AccessToken 用于验证连接的令牌
-	ProtocolVersion int    `yaml:"protocol_version"` // 协议版本11/12
+type HttpImpl struct {
+	ImplConfig
+	Host string `yaml:"host"`
+	Port int    `yaml:"port"`
 }
 
-// HTTPConfig HTTP 配置
-type HTTPConfig struct {
-	Host            string `yaml:"host"`             // 监听主机地址
-	Port            int    `yaml:"port"`             // 绑定端口
-	AccessToken     string `yaml:"access_token"`     // AccessToken 用于验证连接的令牌
-	ProtocolVersion int    `yaml:"protocol_version"` // 协议版本11/12
+type HttpPostImpl struct {
+	ImplConfig
+	Address string `yaml:"address"`
 }
 
-// LoadConfig 从文件加载配置
-func LoadConfig(fileName string, config *Config) error {
-	_, err := os.Stat(fileName)
-	if err != nil {
-		Logger.Error("配置文件 config.yml 不存在，请修改 config.example.yml 后自行保存为 config.yml 后重启", err)
-		return err
-	}
-	data, err := os.ReadFile(fileName)
+type ForwardWebSocketImpl struct {
+	ImplConfig
+	Host string `yaml:"host"`
+	Port int    `yaml:"port"`
+}
+
+type ReverseWebSocketImpl struct {
+	ImplConfig
+	Address           string `yaml:"address"`
+	ReconnectInterval int    `yaml:"reconnect_interval"`
+}
+
+// LoadConfig 从文件config.yml中加载配置
+func LoadConfig() (Config, error) {
+	// 读取配置文件
+	file, err := os.ReadFile("config.yml")
 	if err != nil {
 		Logger.Error("读取配置文件失败: ", err)
-		return err
+		return Config{}, err
 	}
-	err = yaml.Unmarshal(data, config)
+	// 解析配置文件
+	config := new(Config)
+	err = yaml.Unmarshal(file, config)
 	if err != nil {
 		Logger.Error("解析配置文件失败: ", err)
-		return err
+		return Config{}, err
 	}
-	Logger.Println("配置文件加载成功")
-	return nil
+
+	return *config, nil
 }

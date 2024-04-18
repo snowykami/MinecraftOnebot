@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/Tnze/go-mc/bot"
 	"net/http"
 	"net/url"
 	"os"
@@ -16,14 +17,9 @@ import (
 	"time"
 )
 
-// BotAuth 是 Tnze 的 bot.Auth 的文字替代
+// bot.Auth 是 Tnze 的 bot.Auth 的文字替代
 // 终有一天他会发疯并对其进行某些操作
 // 而我不想在他之后修复它
-type BotAuth struct {
-	Name string
-	UUID string
-	AsTk string
-}
 
 // MSauth 包含 Microsoft 认证凭据
 type MSauth struct {
@@ -388,9 +384,9 @@ func AuthMC(token XSTSauth) (MCauth, error) {
 	return auth, nil
 }
 
-// GetMCprofile 从令牌获取 BotAuth
-func GetMCprofile(token string) (BotAuth, error) {
-	var profile BotAuth
+// GetMCprofile 从令牌获取 bot.Auth
+func GetMCprofile(token string) (bot.Auth, error) {
+	var profile bot.Auth
 	PRreq, err := http.NewRequest("GET", "https://api.minecraftservices.com/minecraft/profile", nil)
 	if err != nil {
 		return profile, err
@@ -426,8 +422,8 @@ func GetMCprofile(token string) (BotAuth, error) {
 const DefaultCacheFilename = "./auth.cache"
 
 // GetMCcredentials 从缓存使用设备代码流获取 Minecraft 授权
-func GetMCcredentials(CacheFilename, cid string) (BotAuth, error) {
-	var resauth BotAuth
+func GetMCcredentials(CacheFilename, cid string) (bot.Auth, error) {
+	var resauth bot.Auth
 	var MSa MSauth
 	if CacheFilename == "" {
 		CacheFilename = DefaultCacheFilename

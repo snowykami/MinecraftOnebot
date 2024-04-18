@@ -1,7 +1,8 @@
 msauth.json
 config.yml
 .idea
-data
+/data/
 pkg/go-cqhttp-master
 bin/
 build/
+release_note.md
